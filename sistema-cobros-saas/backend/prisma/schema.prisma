@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL") // <-- Ponemos esto de vuelta
 }
 
 // Tabla principal: Cada fila es una empresa distinta que usa tu sistema
