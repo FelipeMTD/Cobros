@@ -4,28 +4,25 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // <-- Ponemos esto de vuelta
+  url      = env("DATABASE_URL")
 }
 
-// Tabla principal: Cada fila es una empresa distinta que usa tu sistema
 model Tenant {
-  id            String   @id @default(uuid())
-  name          String   // Nombre de la empresa (ej: "Abarrotes Doña Lola")
-  slug          String   @unique // Identificador único en la URL (ej: "dona-lola")
-  plan          String   @default("FREE") // BASIC, PREMIUM, etc.
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relación: Una empresa tiene muchos usuarios
-  users         User[]
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("FREE")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
 }
 
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
-  role      String   @default("ADMIN") // ADMIN, COLLECTOR
+  role      String   @default("ADMIN")
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
