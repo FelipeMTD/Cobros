@@ -131,6 +131,240 @@ app.get('/api/tenants/mi-empresa', verificarToken, async (req: Request, res: Res
   }
 });
 
+// ==========================================
+// 👥 MÓDULO DE CLIENTES (CUSTOMERS)
+// ==========================================
+
+// RUTA PRIVADA: Crear un nuevo cliente
+app.post('/api/customers', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { name, email, phone } = req.body;
+    
+    // ¡La magia del Token! El guardia nos dice a qué empresa pertenece el usuario
+    const tenantId = (req as any).user.tenantId; 
+
+    // Validación básica
+    if (!name) {
+      return res.status(400).json({ error: "El nombre del cliente es obligatorio" });
+    }
+
+    // Creamos el cliente en la base de datos atado a la empresa
+    const newCustomer = await prisma.customer.create({
+      data: {
+        name: name,
+        email: email,
+        phone: phone,
+        tenantId: tenantId // 🔒 Candado de seguridad: atado a TU empresa
+      }
+    });
+
+    res.status(201).json({
+      message: "👤 Cliente registrado con éxito",
+      customer: newCustomer
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al guardar el cliente" });
+  }
+});
+
+// ==========================================
+// 💰 MÓDULO DE COBROS (DEBTS)
+// ==========================================
+
+// RUTA PRIVADA: Registrar un nuevo cobro a un cliente
+app.post('/api/debts', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { description, amount, customerId, dueDate } = req.body;
+    
+    // El guardia nos dice a qué empresa pertenece esta operación
+    const tenantId = (req as any).user.tenantId;
+
+    // Validación básica
+    if (!description || !amount || !customerId) {
+      return res.status(400).json({ error: "Faltan datos obligatorios (description, amount, customerId)" });
+    }
+
+    // Creamos el cobro en la base de datos
+    const newDebt = await prisma.debt.create({
+      data: {
+        description: description,
+        amount: parseFloat(amount), // Nos aseguramos de que sea un número (decimal)
+        customerId: customerId,     // A quién le cobramos
+        tenantId: tenantId,         // De qué empresa es este cobro
+        dueDate: dueDate ? new Date(dueDate) : null // Fecha límite (opcional)
+      }
+    });
+
+    res.status(201).json({
+      message: "💵 Cobro registrado con éxito",
+      debt: newDebt
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al registrar el cobro" });
+  }
+});
+
+// ==========================================
+// 💰 MÓDULO DE COBROS (DEBTS)
+// ==========================================
+
+// RUTA PRIVADA: Registrar un nuevo cobro a un cliente
+app.post('/api/debts', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { description, amount, customerId, dueDate } = req.body;
+    
+    // El guardia nos dice a qué empresa pertenece esta operación
+    const tenantId = (req as any).user.tenantId;
+
+    // Validación básica
+    if (!description || !amount || !customerId) {
+      return res.status(400).json({ error: "Faltan datos obligatorios (description, amount, customerId)" });
+    }
+
+    // Creamos el cobro en la base de datos
+    const newDebt = await prisma.debt.create({
+      data: {
+        description: description,
+        amount: parseFloat(amount), // Nos aseguramos de que sea un número (decimal)
+        customerId: customerId,     // A quién le cobramos
+        tenantId: tenantId,         // De qué empresa es este cobro
+        dueDate: dueDate ? new Date(dueDate) : null // Fecha límite (opcional)
+      }
+    });
+
+    res.status(201).json({
+      message: "💵 Cobro registrado con éxito",
+      debt: newDebt
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al registrar el cobro" });
+  }
+});
+
+// RUTA PRIVADA: Obtener todos los cobros de mi empresa
+app.get('/api/debts', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    // El guardia nos dice a qué empresa perteneces
+    const tenantId = (req as any).user.tenantId;
+
+    // Buscamos todas las deudas de TU empresa
+    const misCobros = await prisma.debt.findMany({
+      where: { 
+        tenantId: tenantId 
+      },
+      include: {
+        customer: {
+          select: { name: true, email: true } // Traemos el nombre y correo del cliente
+        }
+      },
+      orderBy: {
+        createdAt: 'desc' // Ordenamos de lo más nuevo a lo más viejo
+      }
+    });
+
+    res.json({
+      message: "📋 Lista de cobros obtenida",
+      total: misCobros.length,
+      debts: misCobros
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener los cobros" });
+  }
+});
+
+// RUTA PRIVADA: Marcar un cobro como PAGADO
+app.patch('/api/debts/:id/pay', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    // 1. Extraemos el ID del cobro directamente de la URL
+    const { id } = req.params; 
+    
+    // 2. El guardia nos da el ID de tu empresa
+    const tenantId = (req as any).user.tenantId;
+
+    // 3. SEGURIDAD: Buscamos que el cobro exista Y que sea de TU empresa
+    const cobroExistente = await prisma.debt.findFirst({
+      where: {
+        id: id,
+        tenantId: tenantId // 🔒 Candado clave
+      }
+    });
+
+    if (!cobroExistente) {
+      return res.status(404).json({ error: "Cobro no encontrado o no pertenece a tu empresa" });
+    }
+
+    if (cobroExistente.status === "PAID") {
+      return res.status(400).json({ message: "Este cobro ya había sido pagado anteriormente" });
+    }
+
+    // 4. Actualizamos el estado a PAGADO
+    const cobroPagado = await prisma.debt.update({
+      where: { id: id },
+      data: { status: "PAID" }
+    });
+
+    res.json({
+      message: "✅ ¡Dinero en caja! Cobro marcado como PAGADO",
+      debt: cobroPagado
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al procesar el pago" });
+  }
+});
+
+// ==========================================
+// 📈 MÓDULO DE DASHBOARD Y MÉTRICAS
+// ==========================================
+
+// RUTA PRIVADA: Obtener resumen financiero
+app.get('/api/dashboard', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    // El guardia nos da el ID de tu empresa
+    const tenantId = (req as any).user.tenantId;
+
+    // 1. ¿Cuántos clientes tenemos en total?
+    const totalCustomers = await prisma.customer.count({
+      where: { tenantId: tenantId }
+    });
+
+    // 2. ¿Cuánto dinero ya tenemos en el bolsillo (PAID)?
+    const paidAggregation = await prisma.debt.aggregate({
+      _sum: { amount: true },
+      where: { tenantId: tenantId, status: "PAID" }
+    });
+
+    // 3. ¿Cuánto dinero nos deben en la calle (PENDING)?
+    const pendingAggregation = await prisma.debt.aggregate({
+      _sum: { amount: true },
+      where: { tenantId: tenantId, status: "PENDING" }
+    });
+
+    // Enviamos el resumen empaquetado y listo para mostrar
+    res.json({
+      message: "📊 Métricas cargadas con éxito",
+      metrics: {
+        totalCustomers: totalCustomers,
+        totalCollected: paidAggregation._sum.amount || 0, // Si es nulo, ponemos 0
+        totalPending: pendingAggregation._sum.amount || 0
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al cargar el dashboard" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`✅ Servidor listo en http://localhost:${PORT}`);
 });

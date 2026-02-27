@@ -1,3 +1,5 @@
+// backend/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,23 +9,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 🏢 LA EMPRESA
 model Tenant {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
-  slug      String   @unique
-  plan      String   @default("FREE")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  slug      String     @unique
+  plan      String     @default("FREE")
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  // Relaciones (Todo lo que le pertenece a la empresa)
   users     User[]
+  customers Customer[]
+  debts     Debt[]
 }
 
+// 👤 EL USUARIO (Dueño o empleado)
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
   role      String   @default("ADMIN")
+  
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
   createdAt DateTime @default(now())
+}
+
+// 👥 EL CLIENTE (A quien se le cobra)
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?  // El "?" significa que es opcional
+  phone     String?  // Opcional
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  debts     Debt[]   // Los cobros asociados a este cliente
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 💰 EL COBRO / LA DEUDA
+model Debt {
+  id          String    @id @default(uuid())
+  description String    // Ej: "Mensualidad Internet"
+  amount      Float     // Ej: 50000.00
+  status      String    @default("PENDING") // PENDING o PAID
+  dueDate     DateTime? // Fecha límite de pago
+  
+  // Relacionado al cliente que debe pagarlo
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  
+  // Relacionado a la empresa dueña del cobro (por seguridad)
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
