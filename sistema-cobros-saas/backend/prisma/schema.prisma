@@ -1,6 +1,5 @@
 // backend/prisma/schema.prisma
 
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,45 +11,41 @@ datasource db {
 
 // 🏢 LA EMPRESA
 model Tenant {
-  id        String     @id @default(uuid())
-  name      String
-  slug      String     @unique
-  plan      String     @default("FREE")
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id            String     @id @default(uuid())
+  name          String
+  slug          String     @unique
+  plan          String     @default("FREE")
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   
-  // Relaciones (Todo lo que le pertenece a la empresa)
-  users     User[]
-  customers Customer[]
-  debts     Debt[]
+  // Relaciones
+  configuracion ConfiguracionEmpresa? // 🚨 NUEVO: Conexión con sus reglas
+  users         User[]
+  customers     Customer[]
+  debts         Debt[]
 }
 
-// 👤 EL USUARIO (Dueño o empleado)
+// 👤 EL USUARIO
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
   role      String   @default("ADMIN")
-  
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
   createdAt DateTime @default(now())
 }
 
-// 👥 EL CLIENTE (A quien se le cobra)
+// 👥 EL CLIENTE
 model Customer {
   id        String   @id @default(uuid())
   name      String
-  email     String?  // El "?" significa que es opcional
-  phone     String?  // Opcional
-  
+  email     String?
+  phone     String?
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
-  debts     Debt[]   // Los cobros asociados a este cliente
-  
+  debts     Debt[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -58,19 +53,30 @@ model Customer {
 // 💰 EL COBRO / LA DEUDA
 model Debt {
   id          String    @id @default(uuid())
-  description String    // Ej: "Mensualidad Internet"
-  amount      Float     // Ej: 50000.00
-  status      String    @default("PENDING") // PENDING o PAID
-  dueDate     DateTime? // Fecha límite de pago
-  
-  // Relacionado al cliente que debe pagarlo
+  description String
+  amount      Float
+  status      String    @default("PENDING")
+  dueDate     DateTime?
   customerId  String
   customer    Customer  @relation(fields: [customerId], references: [id])
-  
-  // Relacionado a la empresa dueña del cobro (por seguridad)
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// ⚙️ EL MOTOR DE REGLAS FINANCIERAS (NUEVO)
+model ConfiguracionEmpresa {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // Reglas de negocio
+  tasaInteres     Float    @default(20.0) // Ej: 20%
+  limiteCreditos  Int      @default(2)    // Máximo de créditos por cliente
+  cobrarMora      Boolean  @default(true) 
+  excluirDomingos Boolean  @default(true) 
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
