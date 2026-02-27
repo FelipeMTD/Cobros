@@ -1,5 +1,7 @@
 {
   "devDependencies": {
+    "@prisma/client": "^7.4.1",
+    "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6"
   }
 }
