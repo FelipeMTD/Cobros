@@ -45,6 +45,12 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-800">Mi Negocio</h1>
           
           <div className="flex space-x-3">
+            <Link to="/superadmin" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              👑 Admin
+            </Link>
+            <Link to="/cobradores" className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              🛵 Equipo
+            </Link>
             <Link to="/clientes" className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               👥 Clientes
             </Link>

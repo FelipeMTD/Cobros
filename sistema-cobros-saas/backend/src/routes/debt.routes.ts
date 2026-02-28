@@ -93,4 +93,66 @@ router.patch('/:id/pay', verificarToken, async (req: Request, res: Response): Pr
   }
 });
 
+// ⏳ POST /api/debts/process-mora -> Motor Automático de Recargos
+router.post('/process-mora', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const today = new Date();
+    
+    // 1. Buscar TODAS las deudas PENDIENTES que ya se vencieron
+    const overdueDebts = await prisma.debt.findMany({
+      where: {
+        status: 'PENDING',
+        dueDate: { lt: today } // dueDate es menor a hoy
+      },
+      include: { tenant: { include: { configuracion: true } } }
+    });
+
+    let procesados = 0;
+
+    // 2. Analizar cliente por cliente
+    for (const debt of overdueDebts) {
+      const config = debt.tenant.configuracion;
+      
+      // Si la empresa de este cliente decidió no cobrar mora, lo perdonamos
+      if (!config || !config.cobrarMora) continue; 
+
+      // Calcular cuántos días han pasado desde la fecha de vencimiento
+      const msLate = today.getTime() - new Date(debt.dueDate!).getTime();
+      let daysLate = Math.floor(msLate / (1000 * 60 * 60 * 24));
+
+      // 🧠 LA MAGIA: Excluir los domingos si la empresa lo configuró así
+      if (config.excluirDomingos) {
+        let domingos = 0;
+        let tempDate = new Date(debt.dueDate!);
+        while (tempDate <= today) {
+          if (tempDate.getDay() === 0) domingos++; // 0 es Domingo en JavaScript
+          tempDate.setDate(tempDate.getDate() + 1);
+        }
+        daysLate -= domingos;
+      }
+
+      if (daysLate > 0) {
+        // Fórmula de Castigo: 1% de interés moratorio por cada día de retraso
+        const penalidad = (debt.amount * 0.01) * daysLate; 
+        
+        await prisma.debt.update({
+          where: { id: debt.id },
+          data: { 
+            amount: debt.amount + penalidad,
+            // Actualizamos la fecha de vencimiento a hoy para no cobrarle doble mañana si no pasa otro día
+            dueDate: today, 
+            description: `${debt.description} (+ Mora aplicada)`
+          }
+        });
+        procesados++;
+      }
+    }
+
+    res.json({ message: `⚙️ Motor de Mora ejecutado. ${procesados} deudas han recibido penalidad.` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error fatal en el motor de mora" });
+  }
+});
+
 export default router;

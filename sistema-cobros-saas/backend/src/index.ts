@@ -10,6 +10,7 @@ import customerRoutes from './routes/customer.routes.js';
 import debtRoutes from './routes/debt.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import configRoutes from './routes/config.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/config', configRoutes);
+app.use('/api/users', userRoutes);
 // 3. ARRANCAR EL SERVIDOR
 app.listen(PORT, () => {
   console.log(`✅ Servidor listo en http://localhost:${PORT}`);
