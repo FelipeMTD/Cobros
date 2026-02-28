@@ -1,7 +1,7 @@
 // web-admin/src/pages/Dashboard.tsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -9,16 +9,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Al cargar la página, buscamos el token
     const token = localStorage.getItem('saas_token');
-    
     if (!token) {
-      // Si no hay token (no se ha logueado), lo pateamos al Login
       navigate('/login');
       return;
     }
 
-    // Si hay token, vamos al backend a pedir la plata
     const fetchDashboard = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/dashboard', {
@@ -43,42 +39,45 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
+        
+        {/* CABECERA CON BOTONES CORRECTAMENTE UBICADOS */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Mi Negocio</h1>
-          <button 
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow"
-          >
-            Cerrar Sesión
-          </button>
+          
+          <div className="flex space-x-3">
+            <Link to="/clientes" className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              👥 Clientes
+            </Link>
+            <Link to="/cobros" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              💰 Cobros
+            </Link>
+            <Link to="/configuracion" className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              ⚙️ Configuraciones
+            </Link>
+            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
 
+        {/* MÉTRICAS */}
         {error ? (
           <p className="text-red-500">{error}</p>
         ) : !metrics ? (
           <p className="text-gray-500 text-xl">Cargando tus millones...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Tarjeta 1: Clientes */}
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
               <h3 className="text-gray-500 text-sm font-bold uppercase">Total Clientes</h3>
               <p className="text-3xl font-bold text-gray-800 mt-2">{metrics.totalCustomers}</p>
             </div>
-
-            {/* Tarjeta 2: Dinero Cobrado */}
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
               <h3 className="text-gray-500 text-sm font-bold uppercase">Dinero en Caja</h3>
-              <p className="text-3xl font-bold text-green-600 mt-2">
-                ${metrics.totalCollected.toLocaleString()}
-              </p>
+              <p className="text-3xl font-bold text-green-600 mt-2">${metrics.totalCollected.toLocaleString()}</p>
             </div>
-
-            {/* Tarjeta 3: Dinero en la Calle */}
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-orange-500">
               <h3 className="text-gray-500 text-sm font-bold uppercase">Dinero por Cobrar</h3>
-              <p className="text-3xl font-bold text-orange-500 mt-2">
-                ${metrics.totalPending.toLocaleString()}
-              </p>
+              <p className="text-3xl font-bold text-orange-500 mt-2">${metrics.totalPending.toLocaleString()}</p>
             </div>
           </div>
         )}

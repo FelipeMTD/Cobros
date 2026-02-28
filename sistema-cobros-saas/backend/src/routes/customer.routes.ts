@@ -5,7 +5,22 @@ import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// POST /api/customers
+// 🔍 GET /api/customers -> Listar todos los clientes de mi empresa
+router.get('/', verificarToken, async (req: Request, res: Response): Promise<any> => {
+  try {
+    const tenantId = (req as any).user.tenantId;
+    const customers = await prisma.customer.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' } // Los más nuevos primero
+    });
+    res.json({ customers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al obtener la lista de clientes" });
+  }
+});
+
+// ✍️ POST /api/customers -> Crear un nuevo cliente
 router.post('/', verificarToken, async (req: Request, res: Response): Promise<any> => {
   try {
     const { name, email, phone } = req.body;
