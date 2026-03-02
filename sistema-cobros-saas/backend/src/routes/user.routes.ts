@@ -2,8 +2,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import prisma from '../lib/prisma.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
-
+import { verificarToken, soloAdmins } from '../middlewares/auth.middleware.js';
 const router = Router();
 
 // GET /api/users -> Listar todos los empleados (cobradores) de mi empresa
@@ -23,8 +22,7 @@ router.get('/', verificarToken, async (req: Request, res: Response): Promise<any
 });
 
 // POST /api/users -> Crear un nuevo cobrador
-router.post('/', verificarToken, async (req: Request, res: Response): Promise<any> => {
-  try {
+router.post('/', verificarToken, soloAdmins, async (req: Request, res: Response): Promise<any> => {  try {
     const { email, password, role } = req.body;
     const tenantId = (req as any).user.tenantId; 
 

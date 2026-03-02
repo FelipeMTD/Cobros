@@ -11,18 +11,22 @@ router.get('/', verificarToken, async (req: Request, res: Response): Promise<any
     const tenantId = (req as any).user.tenantId;
 
     const totalCustomers = await prisma.customer.count({ where: { tenantId } });
-    const paidAggregation = await prisma.debt.aggregate({
-      _sum: { amount: true }, where: { tenantId, status: "PAID" }
-    });
+    
+    // El dinero en la calle sigue siendo la suma de lo PENDIENTE
     const pendingAggregation = await prisma.debt.aggregate({
       _sum: { amount: true }, where: { tenantId, status: "PENDING" }
+    });
+
+    // 🚨 NUEVO: El "Dinero en Caja" ahora es el balance real de la Bóveda
+    const cajaGlobal = await prisma.cajaGlobal.findUnique({
+      where: { tenantId }
     });
 
     res.json({
       message: "📊 Métricas cargadas con éxito",
       metrics: {
         totalCustomers,
-        totalCollected: paidAggregation._sum.amount || 0,
+        totalCollected: cajaGlobal?.balance || 0, // <--- Lee directamente la Caja Global
         totalPending: pendingAggregation._sum.amount || 0
       }
     });

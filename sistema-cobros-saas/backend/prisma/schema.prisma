@@ -19,14 +19,17 @@ model Tenant {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   
-  // Relaciones
-  configuracion ConfiguracionEmpresa? // 🚨 NUEVO: Conexión con sus reglas
+  configuracion ConfiguracionEmpresa?
   users         User[]
   customers     Customer[]
   debts         Debt[]
+  
+  // 🚨 NUEVO: La gran bóveda de la empresa
+  cajaGlobal    CajaGlobal? 
+  cajasMenores  CajaMenor[]
 }
 
-// 👤 EL USUARIO
+// 👤 EL USUARIO (Admin o Cobrador)
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -35,6 +38,10 @@ model User {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   createdAt DateTime @default(now())
+
+  // 🚨 NUEVO: El cobrador tiene su propia billetera y su propia ruta de clientes
+  cajaMenor CajaMenor?
+  clientesAsignados Customer[]
 }
 
 // 👥 EL CLIENTE
@@ -45,6 +52,11 @@ model Customer {
   phone     String?
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // 🚨 NUEVO: Para el "Sistema de Rutas", el cliente se le asigna a un cobrador específico
+  assignedToId String?
+  assignedTo   User?    @relation(fields: [assignedToId], references: [id])
+
   debts     Debt[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -65,18 +77,44 @@ model Debt {
   updatedAt   DateTime  @updatedAt
 }
 
-// ⚙️ EL MOTOR DE REGLAS FINANCIERAS (NUEVO)
+// ⚙️ EL MOTOR DE REGLAS FINANCIERAS
 model ConfiguracionEmpresa {
   id              String   @id @default(uuid())
   tenantId        String   @unique
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
   
-  // Reglas de negocio
-  tasaInteres     Float    @default(20.0) // Ej: 20%
-  limiteCreditos  Int      @default(2)    // Máximo de créditos por cliente
+  tasaInteres     Float    @default(20.0) 
+  limiteCreditos  Int      @default(2)    
   cobrarMora      Boolean  @default(true) 
   excluirDomingos Boolean  @default(true) 
+
+  // 🚨 NUEVO: Configuración para excluir los lunes festivos (PRD 6.3)
+  excluirFestivos Boolean  @default(true)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ==========================================
+// 🚨 TABLAS NUEVAS (MÓDULO FINANCIERO PRD 6.1)
+// ==========================================
+
+// 🏦 CAJA GLOBAL: El dinero central de la empresa en el banco/oficina
+model CajaGlobal {
+  id        String   @id @default(uuid())
+  balance   Float    @default(0)
+  tenantId  String   @unique
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  updatedAt DateTime @updatedAt
+}
+
+// 👝 CAJA MENOR: El dinero físico que el cobrador trae en el bolsillo
+model CajaMenor {
+  id        String   @id @default(uuid())
+  balance   Float    @default(0)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  updatedAt DateTime @updatedAt
 }

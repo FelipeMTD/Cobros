@@ -20,7 +20,9 @@ router.post('/login', async (req: Request, res: Response): Promise<any> => {
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) return res.status(401).json({ error: "Contraseña incorrecta" });
-
+    if (!user.tenant.isActive && user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: "🚫 Servicio suspendido. Contacta al proveedor del software." });
+    }
     const token = jwt.sign(
       { userId: user.id, tenantId: user.tenantId, role: user.role },
       process.env.JWT_SECRET as string,

@@ -11,7 +11,7 @@ export default function Configuracion() {
   const [limiteCreditos, setLimiteCreditos] = useState(2);
   const [cobrarMora, setCobrarMora] = useState(true);
   const [excluirDomingos, setExcluirDomingos] = useState(true);
-  
+  const [excluirFestivos, setExcluirFestivos] = useState(true);
   // Estados de la UI
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +34,7 @@ export default function Configuracion() {
         setLimiteCreditos(config.limiteCreditos);
         setCobrarMora(config.cobrarMora);
         setExcluirDomingos(config.excluirDomingos);
+        setExcluirFestivos(config.excluirFestivos);
       } catch (err) {
         setMensaje('Error al cargar la configuración');
       } finally {
@@ -55,7 +56,8 @@ export default function Configuracion() {
         tasaInteres: Number(tasaInteres),
         limiteCreditos: Number(limiteCreditos),
         cobrarMora,
-        excluirDomingos
+        excluirDomingos,
+        excluirFestivos
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -142,6 +144,15 @@ export default function Configuracion() {
                   className="h-5 w-5 text-blue-600 rounded"
                 />
                 <span className="text-gray-700 font-medium">Excluir Domingos del cálculo de mora</span>
+              </label>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={excluirFestivos} 
+                  onChange={(e) => setExcluirFestivos(e.target.checked)}
+                  className="h-5 w-5 text-blue-600 rounded"
+                />
+                <span className="text-gray-700 font-medium">Excluir Festivos del cálculo de mora (Motor Colombia)</span>
               </label>
             </div>
 

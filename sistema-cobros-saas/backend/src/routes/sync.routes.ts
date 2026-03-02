@@ -8,33 +8,43 @@ const router = Router();
 // 📥 GET /api/sync/pull -> Descargar datos nuevos desde el servidor al celular
 router.get('/pull', verificarToken, async (req: Request, res: Response): Promise<any> => {
   try {
-    const tenantId = (req as any).user.tenantId;
+    const user = (req as any).user; // Obtenemos al usuario (puede ser ADMIN o PRESTAMISTA)
     
-    // Si el celular nos manda la fecha de su última sincronización, la usamos.
-    // Si es su primera vez (o no manda nada), buscamos desde el inicio de los tiempos (1970).
     const lastSyncStr = req.query.lastSync as string;
     const lastSync = lastSyncStr ? new Date(lastSyncStr) : new Date(0); 
 
-    // Buscamos solo lo que cambió DESPUÉS de esa fecha
-    const clientesNuevos = await prisma.customer.findMany({
-      where: { tenantId, updatedAt: { gt: lastSync } }
-    });
+    // 🚨 MAGIA DE RUTAS: Filtramos dependiendo de quién pide los datos
+    const customerFilter: any = {
+      tenantId: user.tenantId,
+      updatedAt: { gt: lastSync }
+    };
+    
+    // Si es un prestamista, SOLO le mandamos sus clientes asignados
+    if (user.role === 'PRESTAMISTA') {
+      customerFilter.assignedToId = user.userId;
+    }
 
+    const clientesNuevos = await prisma.customer.findMany({ where: customerFilter });
+
+    // Extraemos solo los IDs de esos clientes permitidos
+    const customerIds = clientesNuevos.map(c => c.id);
+
+    // Mandamos solo las deudas de esos clientes permitidos
     const cobrosNuevos = await prisma.debt.findMany({
-      where: { tenantId, updatedAt: { gt: lastSync } }
+      where: { 
+        tenantId: user.tenantId, 
+        customerId: { in: customerIds },
+        updatedAt: { gt: lastSync } 
+      }
     });
 
     const configuracion = await prisma.configuracionEmpresa.findUnique({
-      where: { tenantId }
+      where: { tenantId: user.tenantId }
     });
 
     res.json({
-      timestamp: new Date(), // El celular guardará esta hora exacta para la próxima vez
-      data: {
-        customers: clientesNuevos,
-        debts: cobrosNuevos,
-        config: configuracion
-      }
+      timestamp: new Date(),
+      data: { customers: clientesNuevos, debts: cobrosNuevos, config: configuracion }
     });
   } catch (error) {
     console.error("Error en PULL:", error);
