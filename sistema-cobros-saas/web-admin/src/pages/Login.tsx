@@ -24,8 +24,10 @@ export default function Login() {
 
       // Si es exitoso, guardamos el Token en el navegador
       const token = response.data.token;
+      const role = response.data.user.role;
       localStorage.setItem('saas_token', token);
-          
+      localStorage.setItem('saas_role', role);
+
     // alert('¡Login Exitoso! ' + response.data.message);
     navigate('/dashboard'); // <-- Te lleva volando al panel
       

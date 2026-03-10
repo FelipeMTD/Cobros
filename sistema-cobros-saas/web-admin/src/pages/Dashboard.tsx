@@ -33,9 +33,10 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('saas_token');
+    localStorage.removeItem('saas_role'); // <-- NUEVO
     navigate('/login');
   };
-
+  const userRole = localStorage.getItem('saas_role');
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -43,27 +44,42 @@ export default function Dashboard() {
         {/* CABECERA CON BOTONES CORRECTAMENTE UBICADOS */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Mi Negocio</h1>
-          
+
           <div className="flex space-x-3">
-            <Link to="/superadmin" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded shadow transition-colors">
-              👑 Admin
-            </Link>
-            <Link to="/cobradores" className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
-              🛵 Equipo
-            </Link>
+            
+            {/* Solo el Dueño del SaaS ve la Bóveda */}
+            {userRole === 'SUPER_ADMIN' && (
+              <Link to="/superadmin" className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+                👑 Admin
+              </Link>
+            )}
+
+            {/* Los Jefes de Agencia y el Dueño ven el Equipo y la Configuración */}
+            {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
+              <>
+                <Link to="/cobradores" className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+                  🛵 Equipo
+                </Link>
+                <Link to="/configuracion" className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+                  ⚙️ Configuraciones
+                </Link>
+              </>
+            )}
+
+            {/* Todos (incluyendo los Prestamistas) ven los Clientes y Cobros */}
             <Link to="/clientes" className="bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               👥 Clientes
             </Link>
             <Link to="/cobros" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               💰 Cobros
             </Link>
-            <Link to="/configuracion" className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
-              ⚙️ Configuraciones
-            </Link>
+            
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               Cerrar Sesión
             </button>
           </div>
+
+
         </div>
 
         {/* MÉTRICAS */}
