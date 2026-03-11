@@ -1,7 +1,7 @@
 // backend/src/routes/customer.routes.ts
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, soloAdmins } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.get('/', verificarToken, async (req: Request, res: Response): Promise<any
 });
 
 // ✍️ POST /api/customers -> Crear un nuevo cliente
-router.post('/', verificarToken, async (req: Request, res: Response): Promise<any> => {
+router.post('/', verificarToken, soloAdmins, async (req: Request, res: Response): Promise<any> => {
   try {
     const { name, email, phone } = req.body;
     const tenantId = (req as any).user.tenantId; 

@@ -63,7 +63,12 @@ export default function Dashboard() {
                 <Link to="/configuracion" className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
                   ⚙️ Configuraciones
                 </Link>
+                <Link to="/cajas" className="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+                  🏦 Cajas
+                </Link>
+
               </>
+              
             )}
 
             {/* Todos (incluyendo los Prestamistas) ven los Clientes y Cobros */}
@@ -73,7 +78,14 @@ export default function Dashboard() {
             <Link to="/cobros" className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               💰 Cobros
             </Link>
-            
+
+            {/* Solo los Administradores ven la Bóveda */}
+            {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
+              <Link to="/cajas" className="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
+                🏦 Bóveda
+              </Link>
+            )}
+
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded shadow transition-colors">
               Cerrar Sesión
             </button>
@@ -89,14 +101,19 @@ export default function Dashboard() {
           <p className="text-gray-500 text-xl">Cargando tus millones...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
               <h3 className="text-gray-500 text-sm font-bold uppercase">Total Clientes</h3>
               <p className="text-3xl font-bold text-gray-800 mt-2">{metrics.totalCustomers}</p>
             </div>
+
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
-              <h3 className="text-gray-500 text-sm font-bold uppercase">Dinero en Caja</h3>
+              <h3 className="text-gray-500 text-sm font-bold uppercase">
+                {userRole === 'PRESTAMISTA' ? 'Efectivo en mi Bolsillo' : 'Dinero en Caja Fuerte'}
+              </h3>
               <p className="text-3xl font-bold text-green-600 mt-2">${metrics.totalCollected.toLocaleString()}</p>
             </div>
+
             <div className="bg-white p-6 rounded-xl shadow border-l-4 border-orange-500">
               <h3 className="text-gray-500 text-sm font-bold uppercase">Dinero por Cobrar</h3>
               <p className="text-3xl font-bold text-orange-500 mt-2">${metrics.totalPending.toLocaleString()}</p>

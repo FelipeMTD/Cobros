@@ -27,6 +27,8 @@ model Tenant {
   // 🚨 NUEVO: La gran bóveda de la empresa
   cajaGlobal    CajaGlobal? 
   cajasMenores  CajaMenor[]
+
+  payments      Payment[]
 }
 
 // 👤 EL USUARIO (Admin o Cobrador)
@@ -42,6 +44,8 @@ model User {
   // 🚨 NUEVO: El cobrador tiene su propia billetera y su propia ruta de clientes
   cajaMenor CajaMenor?
   clientesAsignados Customer[]
+
+  payments      Payment[]
 }
 
 // 👥 EL CLIENTE
@@ -67,6 +71,7 @@ model Debt {
   id          String    @id @default(uuid())
   description String
   amount      Float
+  amountPaid  Float     @default(0) // 🚨 NUEVO: Cuánto ha abonado el cliente
   status      String    @default("PENDING")
   dueDate     DateTime?
   customerId  String
@@ -75,6 +80,7 @@ model Debt {
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  payments    Payment[] // 🚨 NUEVO: Historial de cuotas
 }
 
 // ⚙️ EL MOTOR DE REGLAS FINANCIERAS
@@ -117,4 +123,17 @@ model CajaMenor {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   updatedAt DateTime @updatedAt
+}
+
+// 🧾 EL RECIBO DE PAGO (Historial de Cuotas)
+model Payment {
+  id          String   @id @default(uuid())
+  amount      Float    // De cuánto fue la cuota
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id])
+  collectorId String
+  collector   User     @relation(fields: [collectorId], references: [id])
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime @default(now())
 }

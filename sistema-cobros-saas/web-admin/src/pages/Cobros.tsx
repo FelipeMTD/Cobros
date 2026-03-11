@@ -29,20 +29,22 @@ export default function Cobros() {
   }, [navigate]);
 
   const handlePagar = async (cobroId: string) => {
-    const confirmar = window.confirm("¿Estás seguro de que el cliente ya pagó esta deuda completa?");
-    if (!confirmar) return;
+      const montoStr = window.prompt("¿De cuánto es la cuota/abono que el cliente te está entregando? (Ej: 5000)");
+      if (!montoStr) return;
 
-    const token = localStorage.getItem('saas_token');
-    try {
-      await axios.patch(`http://localhost:3000/api/debts/${cobroId}/pay`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert("✅ ¡Dinero en caja! Pago registrado correctamente.");
-      fetchCobros(); // Recargamos la lista para que se actualice el estado
-    } catch (err) {
-      alert("❌ Error al registrar el pago");
-    }
-  };
+      const token = localStorage.getItem('saas_token');
+      try {
+        const res = await axios.post(`http://localhost:3000/api/debts/${cobroId}/payments`, {
+          amount: montoStr
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert(res.data.message);
+        fetchCobros(); 
+      } catch (err: any) {
+        alert(err.response?.data?.error || "Error al registrar el pago");
+      }
+    };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -85,9 +87,11 @@ export default function Cobros() {
                         <td className="py-3 px-4 font-medium text-gray-800">
                           {cobro.customer?.name || 'Cliente Eliminado'}
                         </td>
-                        <td className="py-3 px-4 text-gray-600">{cobro.description}</td>
-                        <td className="py-3 px-4 font-bold text-gray-800">
-                          ${cobro.amount.toLocaleString()}
+                        <td className="py-3 px-4">
+                            <p className="font-bold text-gray-800">Total: ${cobro.amount.toLocaleString()}</p>
+                            <p className="text-xs text-blue-600 font-bold mt-1">
+                              Pagado: ${cobro.amountPaid?.toLocaleString() || 0}
+                            </p>
                         </td>
                         <td className="py-3 px-4">
                           {cobro.status === 'PENDING' ? (

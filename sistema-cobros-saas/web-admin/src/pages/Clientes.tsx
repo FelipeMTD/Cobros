@@ -5,6 +5,8 @@ import { useNavigate, Link } from 'react-router-dom';
 
 export default function Clientes() {
   const navigate = useNavigate();
+  const userRole = localStorage.getItem('saas_role');
+
   const [clientes, setClientes] = useState<any[]>([]);
   
   // Estados para el formulario
@@ -12,7 +14,7 @@ export default function Clientes() {
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
   // Cargar clientes al inicio
   const fetchClientes = async () => {
     const token = localStorage.getItem('saas_token');
@@ -101,30 +103,40 @@ export default function Clientes() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Panel Izquierdo: Formulario */}
+
+          {/* Panel Izquierdo: Formulario (Condicional) */}
           <div className="bg-white p-6 rounded-xl shadow h-fit">
             <h2 className="text-xl font-bold text-blue-600 mb-4">Nuevo Cliente</h2>
-            <form onSubmit={handleCrearCliente} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Nombre Completo *</label>
-                <input required type="text" value={nombre} onChange={e => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="Ej. Juan Pérez" />
+            
+            {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') ? (
+              <form onSubmit={handleCrearCliente} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nombre Completo *</label>
+                  <input required type="text" value={nombre} onChange={e => setNombre(e.target.value)}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="Ej. Juan Pérez" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
+                  <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="Ej. 3001234567" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Correo (Opcional)</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="juan@correo.com" />
+                </div>
+                <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">
+                  {loading ? 'Guardando...' : '➕ Registrar Cliente'}
+                </button>
+              </form>
+            ) : (
+              <div className="text-center p-6 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-4xl mb-3">🔒</p>
+                <p className="text-blue-800 font-bold mb-2">Acceso Restringido</p>
+                <p className="text-sm text-blue-600">Solo el administrador de la agencia puede registrar nuevos clientes.</p>
+                <p className="text-xs text-blue-500 mt-4">Tu función es asignar préstamos y registrar los recaudos.</p>
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
-                <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="Ej. 3001234567" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Correo (Opcional)</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500" placeholder="juan@correo.com" />
-              </div>
-              <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">
-                {loading ? 'Guardando...' : '➕ Registrar Cliente'}
-              </button>
-            </form>
+            )}
           </div>
 
           {/* Panel Derecho: Tabla de Clientes */}

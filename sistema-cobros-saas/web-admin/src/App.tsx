@@ -7,6 +7,7 @@ import Clientes from './pages/Clientes'; // <-- Importa esto arriba
 import Cobros from './pages/Cobros';
 import Cobradores from './pages/Cobradores';
 import SuperAdmin from './pages/SuperAdmin'; 
+import Cajas from './pages/Cajas';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/cobradores" element={<Cobradores />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/cajas" element={<Cajas />} />
       </Routes>
     </BrowserRouter>
   );

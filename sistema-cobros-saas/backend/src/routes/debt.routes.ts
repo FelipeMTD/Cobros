@@ -78,44 +78,54 @@ router.get('/', verificarToken, async (req: Request, res: Response): Promise<any
   }
 });
 
-// PATCH /api/debts/:id/pay -> Pagar cobro
-// PATCH /api/debts/:id/pay -> Pagar cobro y guardar en Caja
-router.patch('/:id/pay', verificarToken, async (req: Request, res: Response): Promise<any> => {
+// 💸 POST /api/debts/:id/payments -> Registrar una cuota / abono
+router.post('/:id/payments', verificarToken, async (req: Request, res: Response): Promise<any> => {
   try {
-    const { id } = req.params; 
-    const tenantId = (req as any).user.tenantId;
+    const { id } = req.params;
+    const { amount } = req.body;
+    const user = (req as any).user;
+    const cuota = parseFloat(amount);
 
-    const cobroExistente = await prisma.debt.findFirst({ where: { id, tenantId } });
+    if (isNaN(cuota) || cuota <= 0) return res.status(400).json({ error: "Cuota inválida" });
 
-    if (!cobroExistente) return res.status(404).json({ error: "Cobro no encontrado o no te pertenece" });
-    if (cobroExistente.status === "PAID") return res.status(400).json({ message: "Este cobro ya había sido pagado" });
+    const deuda = await prisma.debt.findFirst({ where: { id, tenantId: user.tenantId } });
+    if (!deuda) return res.status(404).json({ error: "Deuda no encontrada" });
+    if (deuda.status === 'PAID') return res.status(400).json({ error: "Esta deuda ya fue saldada" });
 
-    // 🚨 MAGIA FINANCIERA: Usamos una transacción para asegurar la contabilidad
+    // 🚨 TRANSACCIÓN: Cobramos la cuota y el dinero va al bolsillo de quien cobra
     const resultado = await prisma.$transaction(async (tx) => {
       
-      // 1. Marcar la deuda como PAGADA
-      const cobroPagado = await tx.debt.update({
-        where: { id }, data: { status: "PAID" }
+      // 1. Crear el recibo histórico
+      const nuevoPago = await tx.payment.create({
+        data: { amount: cuota, debtId: id, collectorId: user.userId, tenantId: user.tenantId }
       });
 
-      // 2. Meter el dinero a la Caja Global de la Empresa (Upsert por si la caja aún no existía)
-      const caja = await tx.cajaGlobal.upsert({
-        where: { tenantId },
-        update: { balance: { increment: cobroPagado.amount } }, // Sumar al saldo existente
-        create: { tenantId, balance: cobroPagado.amount }       // O crear la caja con este primer saldo
+      // 2. Actualizar el saldo de la deuda (Si ya pagó todo, se marca PAID)
+      const nuevoMontoPagado = deuda.amountPaid + cuota;
+      const status = nuevoMontoPagado >= deuda.amount ? 'PAID' : 'PENDING';
+      
+      const deudaActualizada = await tx.debt.update({
+        where: { id },
+        data: { amountPaid: nuevoMontoPagado, status }
       });
 
-      return { cobroPagado, caja };
+      // 3. Meter el dinero físico a la CAJA MENOR del cobrador que hizo el recaudo
+      const cajaMenor = await tx.cajaMenor.upsert({
+        where: { userId: user.userId },
+        update: { balance: { increment: cuota } },
+        create: { userId: user.userId, tenantId: user.tenantId, balance: cuota }
+      });
+
+      return { deudaActualizada, cajaMenor };
     });
 
     res.json({ 
-      message: "✅ ¡Dinero en caja! Pago registrado contablemente.", 
-      debt: resultado.cobroPagado,
-      nuevoSaldo: resultado.caja.balance
+      message: `✅ Cuota de $${cuota} registrada exitosamente.`,
+      saldoRestante: resultado.deudaActualizada.amount - resultado.deudaActualizada.amountPaid
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error al procesar el pago" });
+    res.status(500).json({ error: "Error al procesar la cuota" });
   }
 });
 
